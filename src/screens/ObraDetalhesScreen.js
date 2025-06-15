@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TextInput, Image, FlatList, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Image, FlatList, Alert, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as MailComposer from 'expo-mail-composer';
 import { getObra, getObras, getFiscalizacoes, updateObra, deleteObra } from '../services/storage';
@@ -142,51 +142,60 @@ const ObraDetalhesScreen = () => {
 
   return (
     <LinearGradient colors={['#3498db', '#8e44ad']} style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Detalhes da Obra</Text>
-        {isEditing ? (
-          <>
-            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome" />
-            <TextInput style={styles.input} value={responsavel} onChangeText={setResponsavel} placeholder="Responsável" />
-            <TextInput style={styles.input} value={dataInicio} onChangeText={setDataInicio} placeholder="Data de Início" />
-            <TextInput style={styles.input} value={previsaoTermino} onChangeText={setPrevisaoTermino} placeholder="Previsão de Término" />
-            <TextInput style={styles.input} value={descricao} onChangeText={setDescricao} placeholder="Descrição" />
-          </>
-        ) : (
-          <>
-            {obra.foto && <Image source={{ uri: obra.foto }} style={styles.obraImage} />}
-            <Text style={styles.label}>Nome: {obra.nome}</Text>
-            <Text style={styles.label}>Responsável: {obra.responsavel}</Text>
-            <Text style={styles.label}>Data de Início: {obra.dataInicio}</Text>
-            <Text style={styles.label}>Previsão de Término: {obra.previsaoTermino}</Text>
-            <Text style={styles.label}>Descrição: {obra.descricao}</Text>
-            <Text style={styles.label}>Localização: Lat {obra.localizacao.latitude}, Long {obra.localizacao.longitude}</Text>
-          </>
-        )}
-        <TouchableOpacity style={styles.button} onPress={handleEdit}>
-          <Text style={styles.buttonText}>{isEditing ? 'Salvar' : 'Editar'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.buttonText}>Excluir</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('FiscalizacaoCadastro', { obraId })}>
-          <Text style={styles.buttonText}>Cadastrar Fiscalização</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleBackToHome}>
-          <Text style={styles.buttonText}>Voltar à Home</Text>
-        </TouchableOpacity>
-        <Text style={styles.sectionTitle}>Fiscalizações</Text>
-        <FlatList
-          data={fiscalizacoes}
-          renderItem={renderFiscalizacao}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma fiscalização cadastrada.</Text>}
-        />
-        <TextInput style={styles.input} placeholder="E-mail para envio" value={email} onChangeText={setEmail} />
-        <TouchableOpacity style={styles.button} onPress={handleSendEmail}>
-          <Text style={styles.buttonText}>Enviar por E-mail</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Detalhes da Obra</Text>
+          {isEditing ? (
+            <>
+              <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome" />
+              <TextInput style={styles.input} value={responsavel} onChangeText={setResponsavel} placeholder="Responsável" />
+              <TextInput style={styles.input} value={dataInicio} onChangeText={setDataInicio} placeholder="Data de Início" />
+              <TextInput style={styles.input} value={previsaoTermino} onChangeText={setPrevisaoTermino} placeholder="Previsão de Término" />
+              <TextInput style={styles.input} value={descricao} onChangeText={setDescricao} placeholder="Descrição" />
+            </>
+          ) : (
+            <>
+              {obra.foto && <Image source={{ uri: obra.foto }} style={styles.obraImage} />}
+              <Text style={styles.label}>Nome: {obra.nome}</Text>
+              <Text style={styles.label}>Responsável: {obra.responsavel}</Text>
+              <Text style={styles.label}>Data de Início: {obra.dataInicio}</Text>
+              <Text style={styles.label}>Previsão de Término: {obra.previsaoTermino}</Text>
+              <Text style={styles.label}>Descrição: {obra.descricao}</Text>
+              <Text style={styles.label}>Localização: Lat {obra.localizacao.latitude}, Long {obra.localizacao.longitude}</Text>
+            </>
+          )}
+          <TouchableOpacity style={styles.button} onPress={handleEdit}>
+            <Text style={styles.buttonText}>{isEditing ? 'Salvar' : 'Editar'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Text style={styles.buttonText}>Excluir</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('FiscalizacaoCadastro', { obraId })}>
+            <Text style={styles.buttonText}>Cadastrar Fiscalização</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleBackToHome}>
+            <Text style={styles.buttonText}>Voltar à Home</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.fiscalizacoesSection}>
+          <Text style={styles.sectionTitle}>Fiscalizações</Text>
+          <FlatList
+            data={fiscalizacoes}
+            renderItem={renderFiscalizacao}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma fiscalização cadastrada.</Text>}
+            style={styles.fiscalizacoesList}
+          />
+        </View>
+
+        <View style={styles.emailSection}>
+          <TextInput style={styles.input} placeholder="E-mail para envio" value={email} onChangeText={setEmail} />
+          <TouchableOpacity style={styles.button} onPress={handleSendEmail}>
+            <Text style={styles.buttonText}>Enviar por E-mail</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -195,13 +204,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     marginTop: 20,
+  },
+  content: {
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
@@ -248,6 +259,12 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     marginVertical: 15,
   },
+  fiscalizacoesSection: {
+    marginBottom: 20,
+  },
+  fiscalizacoesList: {
+    marginTop: 10,
+  },
   fiscalizacaoItem: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -281,6 +298,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#7f8c8d',
     marginTop: 10,
+  },
+  emailSection: {
+    marginBottom: 20,
   },
   loading: {
     flex: 1,

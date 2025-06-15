@@ -10,7 +10,7 @@ export const Point = {
     dataInicio: String,
     previsaoTermino: String,
     localizacao: Point,
-    foto: String, // URI da foto (opcional)
+    foto: String, 
     descricao: String,
   };
   
@@ -21,5 +21,5 @@ export const Point = {
     status: 'Em Dia' | 'Atrasada' | 'Parada',
     observacoes: String,
     localizacao: Point,
-    foto: String, // URI da foto (opcional)
+    foto: String,
   };

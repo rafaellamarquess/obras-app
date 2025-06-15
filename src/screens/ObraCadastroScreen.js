@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Image, Alert, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, TextInput, Image, Alert, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,6 +16,7 @@ const ObraCadastroScreen = () => {
   const [localizacao, setLocalizacao] = useState(null);
   const [foto, setFoto] = useState(null);
   const [mapRegion, setMapRegion] = useState(null);
+  const [locationName, setLocationName] = useState('');
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -36,9 +37,23 @@ const ObraCadastroScreen = () => {
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         });
+        await updateLocationName(initialLocation.coords.latitude, initialLocation.coords.longitude);
       }
     })();
   }, []);
+
+  const updateLocationName = async (latitude, longitude) => {
+    try {
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (geocode.length > 0) {
+        const { name, city, region } = geocode[0];
+        setLocationName(`${name || ''}, ${city || ''}, ${region || ''}`.trim());
+      }
+    } catch (error) {
+      console.error('Erro ao obter nome do local:', error);
+      setLocationName('Localização não identificada');
+    }
+  };
 
   const getCurrentLocation = async () => {
     try {
@@ -53,6 +68,7 @@ const ObraCadastroScreen = () => {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
+      await updateLocationName(location.coords.latitude, location.coords.longitude);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao obter localização.');
     }
@@ -68,6 +84,7 @@ const ObraCadastroScreen = () => {
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     });
+    updateLocationName(fixedLat, fixedLong);
   };
 
   const onMapPress = (event) => {
@@ -79,6 +96,7 @@ const ObraCadastroScreen = () => {
       latitudeDelta: 0.0922,
       longitudeDelta: 0.0421,
     });
+    updateLocationName(latitude, longitude);
   };
 
   const takePhoto = async () => {
@@ -137,9 +155,9 @@ const ObraCadastroScreen = () => {
           <Text style={styles.buttonText}>Obter Localização Atual</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={setFixedLocation}>
-          <Text style={styles.buttonText}>Usar Latitude e Longitude Atual</Text>
+          <Text style={styles.buttonText}>Usar Lat: -8.0378705, Long: -34.959609</Text>
         </TouchableOpacity>
-        {localizacao && <Text style={styles.locationText}>Lat: {localizacao.latitude}, Long: {localizacao.longitude}</Text>}
+        {localizacao && <Text style={styles.locationText}>{locationName || 'Obtendo nome do local...'}</Text>}
         <TouchableOpacity style={styles.button} onPress={takePhoto}>
           <Text style={styles.buttonText}>Tirar Foto</Text>
         </TouchableOpacity>
@@ -157,7 +175,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flexGrow: 1,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderTopLeftRadius: 30,

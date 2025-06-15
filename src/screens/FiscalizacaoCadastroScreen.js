@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Image, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Image, Alert, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { saveFiscalizacao } from '../services/storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker } from 'react-native-maps';
 
 const FiscalizacaoCadastroScreen = () => {
   const { obraId } = useRoute().params;
@@ -14,6 +15,7 @@ const FiscalizacaoCadastroScreen = () => {
   const [observacoes, setObservacoes] = useState('');
   const [localizacao, setLocalizacao] = useState(null);
   const [foto, setFoto] = useState(null);
+  const [mapRegion, setMapRegion] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -21,20 +23,61 @@ const FiscalizacaoCadastroScreen = () => {
       const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
       if (cameraStatus !== 'granted' || locationStatus !== 'granted') {
         Alert.alert('Erro', 'Permissões de câmera e localização necessárias.');
+      } else {
+        const initialLocation = await Location.getCurrentPositionAsync({});
+        setLocalizacao({
+          latitude: initialLocation.coords.latitude,
+          longitude: initialLocation.coords.longitude,
+        });
+        setMapRegion({
+          latitude: initialLocation.coords.latitude,
+          longitude: initialLocation.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
       }
     })();
   }, []);
 
-  const getLocalizacao = async () => {
+  const getCurrentLocation = async () => {
     try {
       const location = await Location.getCurrentPositionAsync({});
       setLocalizacao({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+      setMapRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
     } catch (error) {
       Alert.alert('Erro', 'Falha ao obter localização.');
     }
+  };
+
+  const setFixedLocation = () => {
+    const fixedLat = -8.0378705;
+    const fixedLong = -34.959609;
+    setLocalizacao({ latitude: fixedLat, longitude: fixedLong });
+    setMapRegion({
+      latitude: fixedLat,
+      longitude: fixedLong,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
+  };
+
+  const onMapPress = (event) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setLocalizacao({ latitude, longitude });
+    setMapRegion({
+      latitude,
+      longitude,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
   };
 
   const takePhoto = async () => {
@@ -69,13 +112,27 @@ const FiscalizacaoCadastroScreen = () => {
 
   return (
     <LinearGradient colors={['#3498db', '#8e44ad']} style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Cadastrar Fiscalização</Text>
         <TextInput style={styles.input} placeholder="Data (DD/MM/AAAA)" value={data} onChangeText={setData} />
         <TextInput style={styles.input} placeholder="Status (Em Dia, Atrasada, Parada)" value={status} onChangeText={setStatus} />
         <TextInput style={styles.input} placeholder="Observações" value={observacoes} onChangeText={setObservacoes} />
-        <TouchableOpacity style={styles.button} onPress={getLocalizacao}>
-          <Text style={styles.buttonText}>Obter Localização</Text>
+        <View style={styles.mapContainer}>
+          {mapRegion && (
+            <MapView
+              style={styles.map}
+              region={mapRegion}
+              onPress={onMapPress}
+            >
+              {localizacao && <Marker coordinate={localizacao} />}
+            </MapView>
+          )}
+        </View>
+        <TouchableOpacity style={styles.button} onPress={getCurrentLocation}>
+          <Text style={styles.buttonText}>Obter Localização Atual</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={setFixedLocation}>
+          <Text style={styles.buttonText}>Usar Latitude e Longitude</Text>
         </TouchableOpacity>
         {localizacao && <Text style={styles.locationText}>Lat: {localizacao.latitude}, Long: {localizacao.longitude}</Text>}
         <TouchableOpacity style={styles.button} onPress={takePhoto}>
@@ -85,7 +142,7 @@ const FiscalizacaoCadastroScreen = () => {
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Salvar</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -95,7 +152,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderTopLeftRadius: 30,
@@ -135,6 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
+    marginBottom: 20,
   },
   saveButtonText: {
     color: '#fff',
@@ -153,6 +211,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 15,
     textAlign: 'center',
+  },
+  mapContainer: {
+    height: 200,
+    marginBottom: 15,
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
 

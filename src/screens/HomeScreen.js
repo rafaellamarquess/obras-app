@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getObras } from '../services/storage';
+import { getObras, getFiscalizacoes } from '../services/storage';
 
 const HomeScreen = () => {
   const [obras, setObras] = useState([]);
@@ -9,7 +9,19 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const loadObras = async () => {
-      setObras(await getObras());
+      const obrasData = await getObras();
+      const obrasWithFiscalizacoes = await Promise.all(
+        obrasData.map(async (obra) => {
+          const fiscalizacoes = await getFiscalizacoes(obra.id);
+          console.log('Fiscalizações para obra ID:', obra.id, fiscalizacoes); // Log para depuração
+          const totalFiscalizacoes = fiscalizacoes.length;
+          const hasActiveFiscalizacao = fiscalizacoes.some(f =>
+            f.status && (f.status.trim().toLowerCase() === 'em dia' || f.status.trim().toLowerCase() === 'atrasada')
+          );
+          return { ...obra, totalFiscalizacoes, hasActiveFiscalizacao };
+        })
+      );
+      setObras(obrasWithFiscalizacoes);
     };
     loadObras();
   }, []);
@@ -22,21 +34,31 @@ const HomeScreen = () => {
       {item.foto && <Image source={{ uri: item.foto }} style={styles.obraImage} />}
       <View style={styles.obraInfo}>
         <Text style={styles.obraTitle}>{item.nome}</Text>
-        <Text style={styles.obraSubtitle}>{item.responsavel}</Text>
+        <Text style={styles.obraSubtitle}>Responsável: {item.responsavel}</Text>
+        <Text style={styles.obraSubtitle}>Início: {item.dataInicio}</Text>
+        <Text style={styles.obraSubtitle}>Término: {item.previsaoTermino}</Text>
+        <Text style={styles.obraSubtitle}>Descrição: {item.descricao}</Text>
+        <Text style={styles.obraSubtitle}>Localização: Lat {item.localizacao.latitude}, Long {item.localizacao.longitude}</Text>
+        <Text style={styles.obraSubtitle}>
+          Fiscalizações: {item.totalFiscalizacoes} {item.totalFiscalizacoes > 0 ? (item.hasActiveFiscalizacao) : ''}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('ObraCadastro')}>
-        <Text style={styles.addButtonText}>+ Cadastrar Obra</Text>
-      </TouchableOpacity>
       <FlatList
         data={obras}
         renderItem={renderObra}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma obra cadastrada.</Text>}
+        ListHeaderComponent={
+          <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('ObraCadastro')}>
+            <Text style={styles.addButtonText}>+ Cadastrar Obra</Text>
+          </TouchableOpacity>
+        }
+        ListFooterComponent={<View style={{ marginBottom: 10 }} />} // Espaçamento no final
       />
     </View>
   );

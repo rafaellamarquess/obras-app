@@ -73,7 +73,11 @@ export const saveFiscalizacao = async (fiscalizacao) => {
   try {
     const fiscalizacoes = await getFiscalizacoes();
     fiscalizacao.id = uuid.v4();
-    await AsyncStorage.setItem(FISCALIZACOES_KEY, JSON.stringify([...fiscalizacoes, fiscalizacao]));
+    console.log('Fiscalizações antes de salvar:', fiscalizacoes); // Log para depuração
+    const updatedFiscalizacoes = [...fiscalizacoes, fiscalizacao];
+    console.log('Salvando fiscalização:', fiscalizacao); // Log para depuração
+    await AsyncStorage.setItem(FISCALIZACOES_KEY, JSON.stringify(updatedFiscalizacoes));
+    console.log('Fiscalizações após salvar:', updatedFiscalizacoes); // Log para depuração
   } catch (error) {
     console.error('Erro ao salvar fiscalização:', error);
     throw error;
