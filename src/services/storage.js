@@ -4,6 +4,8 @@ import uuid from 'react-native-uuid';
 const OBRAS_KEY = '@ObrasApp:Obras';
 const FISCALIZACOES_KEY = '@ObrasApp:Fiscalizacoes';
 
+
+// OBRAS
 export const saveObra = async (obra) => {
   try {
     const obras = await getObras();
@@ -69,6 +71,8 @@ export const deleteObra = async (id) => {
   }
 };
 
+
+//FISCALIZAÇÃO
 export const saveFiscalizacao = async (fiscalizacao) => {
   try {
     const fiscalizacoes = await getFiscalizacoes();
@@ -92,5 +96,17 @@ export const getFiscalizacoes = async (obraId) => {
   } catch (error) {
     console.error('Erro ao obter fiscalizações:', error);
     return [];
+  }
+};
+
+export const deleteFiscalizacao = async (obraId, fiscalizacaoId) => {
+  try {
+    const fiscalizacoes = await getFiscalizacoes(); // Obtém todas as fiscalizações
+    const updatedFiscalizacoes = fiscalizacoes.filter(f => f.id !== fiscalizacaoId);
+    await AsyncStorage.setItem(FISCALIZACOES_KEY, JSON.stringify(updatedFiscalizacoes));
+    console.log(`Fiscalização com ID ${fiscalizacaoId} excluída para obra ${obraId}`);
+  } catch (error) {
+    console.error('Erro ao excluir fiscalização:', error);
+    throw error;
   }
 };

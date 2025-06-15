@@ -2,8 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, TextInput, Image, FlatList, Alert, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as MailComposer from 'expo-mail-composer';
-import { getObra, getObras, getFiscalizacoes, updateObra, deleteObra } from '../services/storage';
+import { getObra, getObras, getFiscalizacoes, updateObra, deleteObra, deleteFiscalizacao } from '../services/storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ObraDetalhesScreen = () => {
   const { obraId } = useRoute().params;
@@ -98,6 +99,28 @@ const ObraDetalhesScreen = () => {
     ]);
   };
 
+  const handleDeleteFiscalizacao = (fiscalizacaoId) => {
+    Alert.alert('Confirmação', 'Deseja excluir esta fiscalização?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            console.log('Tentando excluir fiscalização com ID:', fiscalizacaoId);
+            await deleteFiscalizacao(obraId, fiscalizacaoId);
+            const updatedFiscalizacoes = await getFiscalizacoes(obraId);
+            setFiscalizacoes(updatedFiscalizacoes);
+            Alert.alert('Sucesso', 'Fiscalização excluída!');
+          } catch (error) {
+            console.error('Erro ao excluir fiscalização:', error);
+            Alert.alert('Erro', 'Falha ao excluir a fiscalização.');
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSendEmail = async () => {
     if (!email) {
       Alert.alert('Erro', 'Digite um e-mail.');
@@ -107,16 +130,24 @@ const ObraDetalhesScreen = () => {
       Alert.alert('Erro', 'Dados da obra não disponíveis.');
       return;
     }
+
     try {
       const fiscalizacoesText = fiscalizacoes
         .map((f) => `Fiscalização: ${f.data}, Status: ${f.status}, Observações: ${f.observacoes}`)
         .join('\n');
-      await MailComposer.composeAsync({
-        recipients: [email],
+      const emailBody = `Nome: ${obra.nome}\nResponsável: ${obra.responsavel}\nData de Início: ${obra.dataInicio}\nPrevisão de Término: ${obra.previsaoTermino}\nDescrição: ${obra.descricao}\nLocalização: Lat ${obra.localizacao.latitude}, Long ${obra.localizacao.longitude}\n\nFiscalizações:\n${fiscalizacoesText}`;
+
+      // Simulação do envio de e-mail
+      const emailLog = {
+        timestamp: new Date().toISOString(),
+        to: email,
         subject: `Obra: ${obra.nome}`,
-        body: `Nome: ${obra.nome}\nResponsável: ${obra.responsavel}\nData de Início: ${obra.dataInicio}\nPrevisão de Término: ${obra.previsaoTermino}\nDescrição: ${obra.descricao}\nLocalização: Lat ${obra.localizacao.latitude}, Long ${obra.localizacao.longitude}\n\nFiscalizações:\n${fiscalizacoesText}`,
-      });
-      Alert.alert('Sucesso', 'E-mail enviado!');
+        body: emailBody,
+      };
+      await AsyncStorage.setItem(`email_log_${Date.now()}`, JSON.stringify(emailLog));
+      Alert.alert('Envio de E-mail', 'E-mail enviado com sucesso. Redirecionando para Home...', [
+        { text: 'OK', onPress: () => navigation.navigate('Home') },
+      ]);
     } catch (error) {
       console.error('Erro ao enviar e-mail:', error);
       Alert.alert('Erro', 'Falha ao enviar e-mail.');
@@ -129,12 +160,17 @@ const ObraDetalhesScreen = () => {
 
   const renderFiscalizacao = ({ item }) => (
     <View style={styles.fiscalizacaoItem}>
-      {item.foto && <Image source={{ uri: item.foto }} style={styles.fiscalizacaoImage} />}
-      <View style={styles.fiscalizacaoInfo}>
-        <Text style={styles.fiscalizacaoText}>Data: {item.data}</Text>
-        <Text style={styles.fiscalizacaoText}>Status: {item.status}</Text>
-        <Text style={styles.fiscalizacaoText}>Observações: {item.observacoes}</Text>
+      <View style={styles.fiscalizacaoContent}>
+        {item.foto && <Image source={{ uri: item.foto }} style={styles.fiscalizacaoImage} />}
+        <View style={styles.fiscalizacaoInfo}>
+          <Text style={styles.fiscalizacaoText}>Data: {item.data}</Text>
+          <Text style={styles.fiscalizacaoText}>Status: {item.status}</Text>
+          <Text style={styles.fiscalizacaoText}>Observações: {item.observacoes}</Text>
+        </View>
       </View>
+      <TouchableOpacity style={styles.deleteButtonSmall} onPress={() => handleDeleteFiscalizacao(item.id)}>
+        <Text style={styles.buttonTextSmall}>Excluir</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -248,9 +284,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  deleteButtonSmall: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginLeft: 10,
+  },
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonTextSmall: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   sectionTitle: {
@@ -267,11 +316,16 @@ const styles = StyleSheet.create({
   },
   fiscalizacaoItem: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
     elevation: 1,
+  },
+  fiscalizacaoContent: {
+    flexDirection: 'row',
+    flex: 1,
   },
   fiscalizacaoImage: {
     width: 50,
