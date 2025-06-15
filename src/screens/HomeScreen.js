@@ -13,7 +13,7 @@ const HomeScreen = () => {
       const obrasWithFiscalizacoes = await Promise.all(
         obrasData.map(async (obra) => {
           const fiscalizacoes = await getFiscalizacoes(obra.id);
-          console.log('Fiscalizações para obra ID:', obra.id, fiscalizacoes); // Log para depuração
+          console.log('Fiscalizações para obra ID:', obra.id, fiscalizacoes);
           const totalFiscalizacoes = fiscalizacoes.length;
           const hasActiveFiscalizacao = fiscalizacoes.some(f =>
             f.status && (f.status.trim().toLowerCase() === 'em dia' || f.status.trim().toLowerCase() === 'atrasada')
@@ -58,7 +58,7 @@ const HomeScreen = () => {
             <Text style={styles.addButtonText}>+ Cadastrar Obra</Text>
           </TouchableOpacity>
         }
-        ListFooterComponent={<View style={{ marginBottom: 10 }} />} // Espaçamento no final
+        ListFooterComponent={<View style={{ marginBottom: 10 }} />}
       />
     </View>
   );
